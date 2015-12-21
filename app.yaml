@@ -6,5 +6,9 @@ threadsafe: yes
 
 handlers:
 
+- url: /angular-gmail\.js
+  static_files: angular-gmail.js
+  upload: angular-gmail\.js
+
 - url: .*
   script: main.php
