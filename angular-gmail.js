@@ -1,8 +1,9 @@
    (function(){
    	'use strict';
+	//don't forget to load the client library for javascript     <script src="https://apis.google.com/js/client.js">
 
-   	angular.module('Angular-Gmail',[]).factory('Angular-Gmail',['$q',
-   		'$rootScope',function($q,$rootScope){
+	angular.module('Angular-Gmail',[]).factory('Angular-Gmail',['$q',
+		'$rootScope',function($q,$rootScope){
 			//The Client ID is specified in your Google Cloud Project
 			var CLIENT_ID = '';
 	 		//Scopes are permission levels for your application, choose the most limited scope that meets your needs from this list: https://developers.google.com/gmail/api/auth/scopes
@@ -59,17 +60,22 @@
 	 				});
 	 			},
 	 			login:function(){
-	 				gapi.auth.authorize({
-	 					'client_id': CLIENT_ID,
-	 					'scope': SCOPES.join(' '),
-	 					'immediate': false
-	 				}, function(authResult){
-	 					console.log(authResult);
-	 					loggedIn();
-	 				})
+	 				try{
+	 					gapi.auth.authorize({
+	 						'client_id': CLIENT_ID,
+	 						'scope': SCOPES.join(' '),
+	 						'immediate': false
+	 					}, function(authResult){
+	 						console.log(authResult);
+	 						loggedIn();
+	 					})
+	 				}catch(err){
+	 					debugger;
+	 				}
 	 			},
 	 			loadAllMessageIds:loadAllMessageIds,
 	 			loadMessageIds:loadMessageIds
+
 
 
 	 		}
