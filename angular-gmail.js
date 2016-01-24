@@ -45,6 +45,7 @@
 	 		}
 	 		var self = {
 	 			init:function() {
+	 				var deferred = $q.defer();
 	 				gapi.auth.authorize(
 	 				{
 	 					'client_id': CLIENT_ID,
@@ -52,32 +53,37 @@
 	 					'immediate': true
 	 				}, function(authResult){
 	 					if(authResult && !authResult.error){
-	 						loggedIn();
+	 						deferred.resolve(authResult);
 	 					}else{
 	 						$rootScope.$broadcast('ShowLoginButton');
 
 	 					}
+	 					
 	 				});
+	 				return deferred.promise;
 	 			},
 	 			login:function(){
-	 				try{
-	 					gapi.auth.authorize({
-	 						'client_id': CLIENT_ID,
-	 						'scope': SCOPES.join(' '),
-	 						'immediate': false
-	 					}, function(authResult){
-	 						console.log(authResult);
-	 						loggedIn();
+	 				var deferred = $q.defer();
+	 				gapi.client.load('gmail', 'v1', function(){
+	 					try{
+	 						gapi.auth.authorize({
+	 							'client_id': CLIENT_ID,
+	 							'scope': SCOPES.join(' '),
+	 							'immediate': false
+	 						}, function(authResult){
+	 							deferred.resolve(authResult);
+	 						//console.log(authResult);
+	 						//loggedIn();
 	 					})
-	 				}catch(err){
-	 					debugger;
-	 				}
+	 					}catch(err){
+	 						debugger;
+	 					}
+	 					
+	 				})
+	 				return deferred.promise;
 	 			},
 	 			loadAllMessageIds:loadAllMessageIds,
 	 			loadMessageIds:loadMessageIds
-
-
-
 	 		}
 
 		//debugger;

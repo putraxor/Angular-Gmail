@@ -11,4 +11,6 @@ handlers:
   upload: angular-gmail\.js
 
 - url: .*
-  script: main.php
+  static_files: main.html
+  upload: main\.html
+
