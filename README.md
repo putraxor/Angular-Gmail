@@ -35,4 +35,8 @@ returns:promise
 destination is an object with a property called array that is an array. `destination = {array:[]}`
 This function will request the message IDs matching the query, interatively going through each page of results until all the message IDs have been returned. The messages are then stored in the array of the destination. 
 
+**login***()*
+returns:promise
+Loads the Gmail APIs and launches the Oauth flow for end users to authorize their account to your application. 
+
 
