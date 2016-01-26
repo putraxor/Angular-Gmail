@@ -25,6 +25,11 @@ The sample is most easily run run with Google Cloud Platform's App Engine, but s
 
 While the rest of the functionality is inside of `angular-gmail.js`. Angular-Gmail uses Angular's built in broadcast functionality to communicate between as well as promises to be as asynchronous as possible. 
 
+## Helpful Links
+[Advanced search queries for Gmail](https://support.google.com/mail/answer/7190?hl=en "Advanced search queries for Gmail")
+
+
+
 ## Reference
 **loadMessageIds***(nextPageToken, query)*
 returns:promise
