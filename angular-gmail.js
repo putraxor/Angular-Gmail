@@ -14,34 +14,84 @@
 	 				$rootScope.$broadcast('GmailReady');
 	 			});
 	 		}
-	 		function loadMessageIds(nextPageToken,query){
+
+	 		function loadAllMessageIds(query,destination){
+	 			if (query=='') {
+	 				console.log('If you do not supply a query to loadAllMessagesIds, it will load all of the mailbox. Do not do this');
+	 				debugger;
+	 				return false; 
+	 			};
 	 			var deferred = $q.defer();
-	 			var request = gapi.client.gmail.users.messages.list({
-	 				'userId': 'me',
-	 				'pageToken': nextPageToken,
-	 				'fields':'messages/id,nextPageToken,resultSizeEstimate',
-	 				'q': query
-	 			});
-	 			request.execute(function(resp) {
-	 				deferred.resolve(resp);
-	 			})
+	 			function loadMessageIds(nextPageToken,query){
+	 				var deferred = $q.defer();
+	 				var request = gapi.client.gmail.users.messages.list({
+	 					'userId': 'me',
+	 					'pageToken': nextPageToken,
+	 					'fields':'messages/id,nextPageToken,resultSizeEstimate',
+	 					'q': query
+	 				});
+	 				request.execute(function(resp) {
+	 					deferred.resolve(resp);
+	 				})
+	 				return deferred.promise;
+	 			}
+	 			//small sychronous function to handle recursion to get all the pages of results.
+	 			function x(nextPageToken,query,destination){
+	 				loadMessageIds(nextPageToken,query)
+	 				.then(function(resp){
+	 					destination.array = destination.array.concat(resp.messages);
+	 					if(resp.nextPageToken){
+	 						x(resp.nextPageToken,query,destination)
+	 					}else{
+	 						deferred.resolve(destination.array.map(function(obj){return obj.id}));
+	 					}
+	 				})
+	 			}
+	 			x('',query,destination)
 	 			return deferred.promise;
 	 		}
-	 		function loadAllMessageIds(nextPageToken,query,destination){
-	 			var deferred = $q.defer();
-	 			if(!nextPageToken){
-	 				nextPageToken = '';
+	 		function loadAllMessages(messageIds){
+	 			//takes an array of messages, batches them up and gets the corresponding message bodies.
+	 			var deferred = $q.defer(); 
+	 			var output = [];
+	 			function loadMessages(ids){
+	 				var batch = gapi.client.newBatch();
+	 				for (var i = 0; i < messageIds.length; i++) {
+	 					batch.add(gapi.client.gmail.users.messages.get({
+	 						'userId':'me',
+	 						'id':ids[i],
+	 						'fields':'payload/headers,labelIds'
+	 					}))
+	 				};
+	 				batch.then(function(resp){
+	 					for(var key in resp.result) {
+	 						output.push({
+	 							'id':key,
+	 							'headers':resp.result[key].result.headers,
+	 							'labels':resp.result[key].result.labelIds,
+	 						})
+	 					}
+	 					if(output.length ==messageIds.length){
+	 						deferred.resolve(output);
+	 					}
+	 				})
 	 			}
-	 			loadMessageIds(nextPageToken,query)
-	 			.then(function(resp){
-	 				destination.array = destination.array.concat(resp.messages);
-	 				if(resp.nextPageToken){
-	 					loadAllMessageIds(resp.nextPageToken,query,destination)
-	 				}else{
-	 					deferred.resolve(destination);
-	 				}
+	 			for (var i = 0; i < messageIds.length; i+=50) {
+	 				loadMessages(messageIds.slice(i,i+50))
+	 			};
+	 			return deferred.promise;
+	 		}
+	 		function getMessages(query){
+	 			//returns an arry of messages that meet the query parameters 
+	 			var deferred = $q.defer();
+	 			var messageIds = {array:[]};
+	 			loadAllMessageIds(query,messageIds).then(function(messageIds){
+	 				loadAllMessages(messageIds).then(function(messages){
+	 					deferred.resolve(messages);
+	 				})
 	 			})
-	 			return deferred.promise
+
+	 			return deferred.promise;
 	 		}
 	 		var self = {
 	 			init:function() {
@@ -58,7 +108,7 @@
 	 						$rootScope.$broadcast('ShowLoginButton');
 
 	 					}
-	 					
+
 	 				});
 	 				return deferred.promise;
 	 			},
@@ -72,18 +122,15 @@
 	 							'immediate': false
 	 						}, function(authResult){
 	 							deferred.resolve(authResult);
-	 						//console.log(authResult);
-	 						//loggedIn();
 	 					})
 	 					}catch(err){
 	 						debugger;
 	 					}
-	 					
+
 	 				})
 	 				return deferred.promise;
 	 			},
-	 			loadAllMessageIds:loadAllMessageIds,
-	 			loadMessageIds:loadMessageIds
+	 			getMessages:getMessages
 	 		}
 
 		//debugger;
