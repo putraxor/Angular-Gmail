@@ -51,25 +51,49 @@
 	 			return deferred.promise;
 	 		}
 	 		function loadAllMessages(messageIds){
+	 			console.log(messageIds.length+'message IDs');
 	 			//takes an array of messages, batches them up and gets the corresponding message bodies.
 	 			var deferred = $q.defer(); 
 	 			var output = [];
+	 			function sanitizeMessage(gmailMessage){
+	 				//takes the raw message object from the Gmail API and converts it to an easier 
+	 				var ret = {};
+	 				ret.headers = gmailMessage.payload.headers;
+	 				ret.labels = gmailMessage.labelIds;
+	 				ret.id = gmailMessage.id;
+	 				ret.timestamp = new Date(gmailMessage.internalDate/1000);
+	 				if(gmailMessage.payload.parts){
+	 					for (var i = 0; i < gmailMessage.payload.parts.length; i++) {
+	 						switch(gmailMessage.payload.parts[i].mimeType){
+	 							case 'text/plain':
+	 							ret.text = atob(gmailMessage.payload.parts[i].body.data.replace(/-/g, '+').replace(/_/g, '/'));
+	 							break;
+	 							case 'text/html':
+	 							ret.html = atob(gmailMessage.payload.parts[i].body.data.replace(/-/g, '+').replace(/_/g, '/'));
+	 							break;
+	 						}
+	 					};
+	 				}else if(gmailMessage.payload.body.data){
+	 					ret.html = atob(gmailMessage.payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
+	 				}
+	 				return ret;
+	 			}
 	 			function loadMessages(ids){
 	 				var batch = gapi.client.newBatch();
-	 				for (var i = 0; i < messageIds.length; i++) {
+	 				for (var i = 0; i < ids.length; i++) {
 	 					batch.add(gapi.client.gmail.users.messages.get({
 	 						'userId':'me',
 	 						'id':ids[i],
-	 						'fields':'payload/headers,labelIds'
+	 						//'fields':'payload/headers,labelIds'
 	 					}))
 	 				};
 	 				batch.then(function(resp){
+
 	 					for(var key in resp.result) {
-	 						output.push({
-	 							'id':key,
-	 							'headers':resp.result[key].result.headers,
-	 							'labels':resp.result[key].result.labelIds,
-	 						})
+	 						if (resp.result[key].status != 200){
+	 							console.log(resp.result[key].status);
+	 						}
+	 						output.push(sanitizeMessage(resp.result[key].result))
 	 					}
 	 					if(output.length ==messageIds.length){
 	 						deferred.resolve(output);
@@ -77,7 +101,7 @@
 	 				})
 	 			}
 	 			for (var i = 0; i < messageIds.length; i+=50) {
-	 				loadMessages(messageIds.slice(i,i+50))
+	 				loadMessages(messageIds.slice(i,i+50));
 	 			};
 	 			return deferred.promise;
 	 		}
@@ -86,9 +110,9 @@
 	 			var deferred = $q.defer();
 	 			var messageIds = {array:[]};
 	 			loadAllMessageIds(query,messageIds).then(function(messageIds){
-	 				loadAllMessages(messageIds).then(function(messages){
-	 					deferred.resolve(messages);
-	 				})
+	 				return loadAllMessages(messageIds)
+	 			}).then(function(messages){
+	 				deferred.resolve(messages);
 	 			})
 
 	 			return deferred.promise;
@@ -122,7 +146,7 @@
 	 							'immediate': false
 	 						}, function(authResult){
 	 							deferred.resolve(authResult);
-	 					})
+	 						})
 	 					}catch(err){
 	 						debugger;
 	 					}
