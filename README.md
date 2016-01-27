@@ -35,10 +35,14 @@ While the rest of the functionality is inside of `angular-gmail.js`. Angular-Gma
 returns:promise
 Requests a list of Message IDs that match *query*. *nextPageToken* is used for pagination, replace with '' if you do not yet have a nextPageToken. Resolves the promise with an array of Message IDs. 
 
-**loadAllMessageIds***(nextPageToken, query, destination)*
+**loadAllMessageIds***(query, destination)*
 returns:promise
 destination is an object with a property called array that is an array. `destination = {array:[]}`
 This function will request the message IDs matching the query, interatively going through each page of results until all the message IDs have been returned. The messages are then stored in the array of the destination. 
+
+**getMessages***(query)*
+returns:promise
+Resolves with an array of objects that contain the information about every message that matches the query parameters.
 
 **login***()*
 returns:promise
