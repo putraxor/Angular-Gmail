@@ -79,6 +79,10 @@
 	 				return ret;
 	 			}
 	 			function loadMessages(ids){
+	 				if(ids.length ==0){
+	 					console.log('loadMessages was called without an argument');
+	 					return 0;
+	 				}
 	 				var batch = gapi.client.newBatch();
 	 				for (var i = 0; i < ids.length; i++) {
 	 					batch.add(gapi.client.gmail.users.messages.get({
@@ -88,24 +92,42 @@
 	 					}))
 	 				};
 	 				batch.then(function(resp){
-
+	 					var retryArray = [];
 	 					for(var key in resp.result) {
-	 						if (resp.result[key].status != 200){
-	 							console.log(resp.result[key].status);
+	 						if (resp.result[key].status == 200){
+	 							output.push(sanitizeMessage(resp.result[key].result))
 	 						}
-	 						output.push(sanitizeMessage(resp.result[key].result))
+	 						else{
+	 							console.log(resp.result[key].status);
+	 							if(resp.result[key].status == 429){
+
+	 								//the requests happened too quickly and need to be resent
+	 								debugger;
+	 							}
+	 						}
 	 					}
 	 					if(output.length ==messageIds.length){
 	 						deferred.resolve(output);
 	 					}
 	 				})
 	 			}
-	 			for (var i = 0; i < messageIds.length; i+=50) {
-	 				loadMessages(messageIds.slice(i,i+50));
-	 			};
-	 			return deferred.promise;
-	 		}
-	 		function getMessages(query){
+	 			//function to loop through and send the requests more slowly
+	 			var i =0;
+				function myLoop () {           //  create a loop function
+				   setTimeout(function () {    //  call a 3s setTimeout when the loop is called
+					loadMessages(messageIds.slice(i,i+20));        //  your code here   
+					console.log('sending a request');             
+				      i = i+20;                     //  increment the counter
+				      if (i < messageIds.length) {            //  if the counter < 10, call the loop function
+				         myLoop();             //  ..  again which will trigger another 
+				      }                        //  ..  setTimeout()
+				  }, 200)
+				}
+				myLoop(); 
+
+				return deferred.promise;
+			}
+			function getMessages(query){
 	 			//returns an arry of messages that meet the query parameters 
 	 			var deferred = $q.defer();
 	 			var messageIds = {array:[]};
