@@ -3,7 +3,7 @@
 	//don't forget to load the client library for javascript     <script src="https://apis.google.com/js/client.js">
 
 	angular.module('Angular-Gmail',[]).factory('Angular-Gmail',['$q',
-		'$rootScope',function($q,$rootScope){
+		'$rootScope','$timeout',function($q,$rootScope,$timeout){
 			//The Client ID is specified in your Google Cloud Project
 			var CLIENT_ID = '';
 	 		//Scopes are permission levels for your application, choose the most limited scope that meets your needs from this list: https://developers.google.com/gmail/api/auth/scopes
@@ -61,7 +61,12 @@
 	 				ret.headers = gmailMessage.payload.headers;
 	 				ret.labels = gmailMessage.labelIds;
 	 				ret.id = gmailMessage.id;
-	 				ret.timestamp = new Date(gmailMessage.internalDate/1000);
+	 				debugger;
+	 				ret.timestamp = new Date(Number(gmailMessage.internalDate));
+	 				if(gmailMessage.payload.headers){
+	 					//iterate through the message's headers to pull out relevant data
+
+	 				}
 	 				if(gmailMessage.payload.parts){
 	 					for (var i = 0; i < gmailMessage.payload.parts.length; i++) {
 	 						switch(gmailMessage.payload.parts[i].mimeType){
@@ -109,19 +114,22 @@
 	 					if(output.length ==messageIds.length){
 	 						deferred.resolve(output);
 	 					}
+	 					else{
+	 						deferred.notify(Math.round(output.length/messageIds.length*100))
+	 					}
 	 				})
 	 			}
 	 			//function to loop through and send the requests more slowly
 	 			var i =0;
 				function myLoop () {           //  create a loop function
-				   setTimeout(function () {    //  call a 3s setTimeout when the loop is called
+				   $timeout(function () {    //  call a 3s setTimeout when the loop is called
 					loadMessages(messageIds.slice(i,i+20));        //  your code here   
 					console.log('sending a request');             
 				      i = i+20;                     //  increment the counter
 				      if (i < messageIds.length) {            //  if the counter < 10, call the loop function
 				         myLoop();             //  ..  again which will trigger another 
 				      }                        //  ..  setTimeout()
-				  }, 200)
+				  }, 100)
 				}
 				myLoop(); 
 
@@ -132,9 +140,15 @@
 	 			var deferred = $q.defer();
 	 			var messageIds = {array:[]};
 	 			loadAllMessageIds(query,messageIds).then(function(messageIds){
+	 				deferred.notify('Finished loading all message Ids');
 	 				return loadAllMessages(messageIds)
 	 			}).then(function(messages){
 	 				deferred.resolve(messages);
+	 			},function(err){
+	 				console.log('something has gone wrong');
+	 			},function(message){
+	 				//send the notification upward so that the main view can use it to manage the loading bar;
+	 				deferred.notify(message);
 	 			})
 
 	 			return deferred.promise;
