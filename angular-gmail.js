@@ -2,8 +2,7 @@
    	'use strict';
 	//don't forget to load the client library for javascript     <script src="https://apis.google.com/js/client.js">
 
-	angular.module('Angular-Gmail',[]).factory('Angular-Gmail',['$q',
-		'$rootScope','$timeout',function($q,$rootScope,$timeout){
+	angular.module('Angular-Gmail',[]).factory('Angular-Gmail',['$q','$rootScope','$timeout','$window',function($q,$rootScope,$timeout,$window){
 			//The Client ID is specified in your Google Cloud Project
 			var CLIENT_ID = '';
 	 		//Scopes are permission levels for your application, choose the most limited scope that meets your needs from this list: https://developers.google.com/gmail/api/auth/scopes
@@ -61,12 +60,21 @@
 	 				ret.headers = gmailMessage.payload.headers;
 	 				ret.labels = gmailMessage.labelIds;
 	 				ret.id = gmailMessage.id;
-	 				debugger;
 	 				ret.timestamp = new Date(Number(gmailMessage.internalDate));
 	 				if(gmailMessage.payload.headers){
+	 					for (var i = 0; i < gmailMessage.payload.headers.length; i++) {
+	 						switch(gmailMessage.payload.headers[i].name){
+	 							case 'Subject':
+	 							ret.subject = gmailMessage.payload.headers[i].value;
+	 							break;
+	 						}
+
+	 					};
 	 					//iterate through the message's headers to pull out relevant data
+	 					//debugger;
 
 	 				}
+
 	 				if(gmailMessage.payload.parts){
 	 					for (var i = 0; i < gmailMessage.payload.parts.length; i++) {
 	 						switch(gmailMessage.payload.parts[i].mimeType){
@@ -78,12 +86,19 @@
 	 							break;
 	 						}
 	 					};
+
 	 				}else if(gmailMessage.payload.body.data){
 	 					ret.html = atob(gmailMessage.payload.body.data.replace(/-/g, '+').replace(/_/g, '/'));
 	 				}
 	 				return ret;
 	 			}
 	 			function loadMessages(ids){
+	 				if(!$window.me){
+	 					gapi.client.gmail.users.getProfile({userId:'me'}).then(function(response){
+	 						$window.me = response.result;
+	 					});
+	 				}
+
 	 				if(ids.length ==0){
 	 					console.log('loadMessages was called without an argument');
 	 					return 0;
@@ -112,6 +127,7 @@
 	 						}
 	 					}
 	 					if(output.length ==messageIds.length){
+	 						deferred.notify(Math.round(output.length/messageIds.length*100))
 	 						deferred.resolve(output);
 	 					}
 	 					else{
